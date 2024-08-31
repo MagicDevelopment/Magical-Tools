@@ -1,0 +1,4 @@
+1. Run setup.py which installs the necessary dependencies and wait for the process to complete.
+2. Run Magical.py
+
+ENJOY YOUR "ETHICAL" TOOLS
