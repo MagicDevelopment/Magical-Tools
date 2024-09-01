@@ -9,6 +9,9 @@ import threading
 
 init(autoreset=True)
 
+def get_pc_name():
+    return os.getlogin()  
+
 avatares = [
     'https://media.discordapp.net/attachments/1270870058603647127/1273311119020134472/discordgrey.png?ex=66be26e3&is=66bcd563&hm=c08a7ec2a6bea541a02a3f18bf2e86af4df4058b953219648cc21a9dd8c4cea5&=&format=webp&quality=lossless&width=230&height=230',
     'https://media.discordapp.net/attachments/1270870058603647127/1273311119406272512/discordred.png?ex=66be26e3&is=66bcd563&hm=235ed0139aa6674516a64da93b8cef6fa1c9f97356c3cd2158670e31f6a34cb3&=&format=webp&quality=lossless&width=230&height=230',
@@ -29,27 +32,20 @@ def enviar_mensaje(webhook_url, nombre, avatar_url, mensaje):
         'avatar_url': avatar_url,
         'content': mensaje
     }
-    response = requests.post(webhook_url, json=data)
-    
-    if response.status_code == 204:
-        print(Fore.GREEN + f'✓ Mensaje enviado exitosamente con el nombre: {nombre}' + Style.RESET_ALL)
-    elif response.status_code == 429:
-        print(Fore.RED + f'⚠️ Error al enviar el mensaje: {response.status_code}' + Style.RESET_ALL)
-        print(Fore.RED + 'Detalles del error: ' + response.text + Style.RESET_ALL)
-        retry_after = response.json().get('retry_after', 1)
-        print(Fore.RED + f'Esperando {retry_after + 5} segundos antes de reintentar...' + Style.RESET_ALL)
-        time.sleep(retry_after + 5)  
-    else:
-        print(Fore.RED + f'⚠️ Error al enviar el mensaje: {response.status_code}' + Style.RESET_ALL)
-        print(Fore.RED + 'Detalles del error: ' + response.text + Style.RESET_ALL)
-
-def gradient_purple(step, total_steps):
-    base_r, base_g, base_b = 186, 85, 211  
-    factor = 1 - (step / total_steps)  
-    r = int(base_r * factor)
-    g = int(base_g * factor)
-    b = int(base_b * factor)
-    return f'\033[38;2;{r};{g};{b}m'
+    try:
+        response = requests.post(webhook_url, json=data)
+        if response.status_code == 204:
+            print(Fore.GREEN + f'✓ Mensaje enviado exitosamente con el nombre: {nombre}' + Style.RESET_ALL)
+        elif response.status_code == 429:
+            print(Fore.RED + f'⚠️ Error 429: Demasiadas solicitudes. Código de error: {response.status_code}' + Style.RESET_ALL)
+            retry_after = response.json().get('retry_after', 1)
+            print(Fore.RED + f'Esperando {retry_after + 5} segundos antes de reintentar...' + Style.RESET_ALL)
+            time.sleep(retry_after + 5)
+        else:
+            print(Fore.RED + f'⚠️ Error al enviar el mensaje: {response.status_code}' + Style.RESET_ALL)
+            print(Fore.RED + 'Detalles del error: ' + response.text + Style.RESET_ALL)
+    except requests.RequestException as e:
+        print(Fore.RED + f'⚠️ Error en la solicitud: {str(e)}' + Style.RESET_ALL)
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -60,13 +56,12 @@ def input_thread():
         user_input = input().strip()
         if user_input.lower() == 'exit':
             stop_script = True
-            clear_screen()
-            print(Fore.YELLOW + "🚀 Terminando el programa... Hasta luego!" + Style.RESET_ALL)
+            print(Fore.YELLOW + "Terminando el programa..." + Style.RESET_ALL)
             sys.exit()
 
 def print_ascii_art():
+    pc_username = get_pc_name()
     width = os.get_terminal_size().columns
-    pc_username = os.getlogin()
     total_lines = 9
     art = f"""
 {gradient_purple(0, total_lines)}{' ' * ((width - 48) // 2)} ███▄ ▄███▓    ▄▄▄           ▄████     ██▓    ▄████▄      ▄▄▄          ██▓
@@ -82,37 +77,44 @@ def print_ascii_art():
     """
     print(art)
 
-def print_header():
-    print_ascii_art()
+def gradient_purple(step, total_steps):
+    base_r, base_g, base_b = 186, 85, 211  
+    factor = 1 - (step / total_steps)  
+    r = int(base_r * factor)
+    g = int(base_g * factor)
+    b = int(base_b * factor)
+    return f'\033[38;2;{r};{g};{b}m'
 
 def print_instructions():
-    print(Fore.YELLOW + "🔧 Para detener el programa en cualquier momento, escribe 'exit' y presiona Enter." + Style.RESET_ALL)
-    print(Fore.YELLOW + "🔔 Esto finalizará el Sender y saldrá del programa." + Style.RESET_ALL)
+    print(Fore.YELLOW + Style.BRIGHT + "🔧 Para detener el programa en cualquier momento, escribe 'exit' y presiona Enter." + Style.RESET_ALL)
+    print(Fore.YELLOW + Style.BRIGHT + "🔔 Esto finalizará el Sender y saldrá del programa." + Style.RESET_ALL)
 
 def main():
     clear_screen()
-    print_header()
+    print_ascii_art()
     print_instructions()
 
     purple_rosy = '\033[38;2;181;111;206m'
-
-    if len(sys.argv) == 3:
-        webhook_url = sys.argv[1]
-        mensaje = sys.argv[2]
-    else:
-        print (Fore.YELLOW + "🔗 Ingrese la URL del webhook: " + Style.RESET_ALL)
-        webhook_url = input(f'{purple_rosy}{purple_rosy}${Fore.RED} ').strip()
-        print (Fore.YELLOW + "💬 Ingrese el mensaje que desea enviar: " + Style.RESET_ALL)
-        mensaje = input(f'{purple_rosy}{purple_rosy}${Fore.RED} ').strip()
-
-    nombre = generar_nombre_aleatorio()
-    avatar_url = random.choice(avatares)
-
-    threading.Thread(target=input_thread, daemon=True).start()
+    
+    print(Fore.YELLOW + "🔗 Ingrese la URL del webhook: " + Style.RESET_ALL)
+    webhook_url = input(f'{purple_rosy}{purple_rosy}${Fore.RED} ').strip()
+    if not webhook_url:
+        print(Fore.RED + "La URL del webhook no puede estar vacía. Saliendo..." + Style.RESET_ALL)
+        return
+    
+    print(Fore.YELLOW + "🔤 Ingrese el mensaje a enviar: " + Style.RESET_ALL)
+    mensaje = input(f'{purple_rosy}{purple_rosy}${Fore.RED} ').strip()
+    
+    input_thread_instance = threading.Thread(target=input_thread, daemon=True)
+    input_thread_instance.start()
 
     while not stop_script:
-        enviar_mensaje(webhook_url, nombre, avatar_url, mensaje)
-        time.sleep(60)  
+        for avatar in avatares:
+            if stop_script:
+                break
+            nombre_aleatorio = generar_nombre_aleatorio()
+            enviar_mensaje(webhook_url, nombre_aleatorio, avatar, mensaje)
+            time.sleep(0.1)  
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
