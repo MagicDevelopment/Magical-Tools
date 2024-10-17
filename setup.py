@@ -4,7 +4,7 @@ import sys
 def install_dependencies():
     dependencies = [
         'colorama', 'discord.py', 'requests', 'motor', 'asyncio-dgram',
-        'chat-exporter', 'aiohttp', 'pytz', 'discord-ui', 'pyfiglet'
+        'chat-exporter', 'aiohttp', 'pytz', 'discord-ui', 'pyfiglet', 'numpy'
     ]
 
     for package in dependencies:
